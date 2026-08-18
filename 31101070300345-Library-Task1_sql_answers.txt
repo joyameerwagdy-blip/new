@@ -1,0 +1,464 @@
+﻿Finat project- task 1- part A
+
+
+The five questions:
+Question one
+: how many is each member borrowing
+
+
+Query:
+q1 = run("""
+   SELECT member_id, first_name, last_name, COUNT(checkout_id) AS number_checkouts
+   FROM members
+   LEFT JOIN checkouts USING (member_id)
+   GROUP BY member_id
+   ORDER BY number_checkouts DESC
+""")
+print(q1)
+
+
+reason ??
+I used the members table because I needed every member, even the members who didn't borrow anything.
+I used a left join to include all members because if I used a normal join it would drop the people with no checkouts.
+I used count(checkout_id) instead of count(*) because count(*) would count rows and say 1 instead of 0 for the people with no checkouts 
+
+
+results ??
+question one:How much is each member borrowing
+    member_id first_name last_name  number_checkouts
+0        1034        Aya     Wahba             25
+1        1044     Sherif     Saleh             21
+2        1008       Ziad     Saleh             19
+3        1010       Nour     Nabil             18
+4        1027    Mostafa     Fouad             18
+..        ...        ...       ...            ...
+75       1063      Layla     Fouad              0
+76       1064      Fares     Sabry              0
+77       1066       Amir     Wahba              0
+78       1069     Bassel      Adel              0
+79       1078     Habiba     Osman              0
+
+
+[80 rows x 4 columns]
+ I got all the members, the top one is alya wahba with 25 checkouts and a lot of members had 0 checkouts
+
+
+
+
+
+
+Question two
+: Which books match a chosen author pattern?
+(pattern that i picked is any author that includes letter “J” in their name
+
+
+Query:
+q2 = run("""
+   SELECT book_id, title, author
+   FROM books
+   WHERE author LIKE '%J%'
+""")
+print(q2)
+
+
+reason ??
+I used like with % on both side so it can catch the letter anywhere in the name
+
+
+results ??
+question two:any author that has letter J
+   book_id                 title          author
+0      519      Kites Over Cairo  Jasmine Wahdan
+1      520  The Copper Telescope  Jasmine Wahdan
+There was only 2 books that with the author having J in their name
+
+
+
+
+
+
+Question three
+: What are the most popular books?
+
+
+Query:
+q3 = run("""
+   SELECT books.book_id, books.title, COUNT(*) AS times_borrowed
+   FROM checkouts
+   JOIN books USING (book_id)
+   GROUP BY books.book_id
+   ORDER BY times_borrowed DESC
+   LIMIT 5
+""")
+print(q3)
+
+
+reason ??
+This time I used the checkouts because I only care about books that were borrowed. I used a  normal join here. I grouped by the books so they can get counted together. Then I sorted highest to lowest. Then I got in the top 5.
+
+
+results ??
+question three:What are the most popular books?
+   book_id                   title  times_borrowed
+0      501         The Silver Kite              57
+1      507   Fossils and Fireflies              55
+2      513  Circuits for Beginners              46
+3      519        Kites Over Cairo              38
+4      525    Storms and Sailboats              25
+
+
+
+
+Question four
+: Who are the most active readers?
+
+
+Query:
+q4 = run("""
+   SELECT members.member_id, members.first_name, members.last_name,
+          COUNT(checkouts.checkout_id) AS number_checkouts
+   FROM checkouts
+   JOIN members USING (member_id)
+   GROUP BY members.member_id
+   ORDER BY number_checkouts DESC
+   LIMIT 10
+""")
+print(q4)
+
+
+reason ??
+Here i started with checkouts to get the members that borrowed and then grouped by member and sorted highest to lowest and got top 10.
+
+
+results ??
+question four:Who are the most active readers?
+   member_id first_name last_name  number_checkouts
+0       1034        Aya     Wahba             25
+1       1044     Sherif     Saleh             21
+2       1008       Ziad     Saleh             19
+3       1027    Mostafa     Fouad             18
+4       1010       Nour     Nabil             18
+5       1065       Adam     Fahmy             17
+6       1024    Youssef    Hegazy             17
+7       1018      Ahmed    Shafik             17
+8       1047       Sara    Rashad             16
+9       1030       Reem     Osman             16
+
+
+
+
+
+
+Question five
+: What does a neighborhood's activity (heliopolis) look like further back in time?
+
+
+Query:
+q5 = run("""
+   SELECT checkouts.checkout_id, members.first_name, members.last_name,
+          checkouts.book_id, checkouts.checkout_date
+   FROM checkouts
+   JOIN members USING (member_id)
+   WHERE neighborhood = 'Heliopolis'
+   ORDER BY checkout_date DESC
+   LIMIT 10 OFFSET 10
+""")
+print(q5)
+
+
+reason ??
+I filtered the nighborhood to the heliopolis then order by the date from newest first then offset 10 skips 10 newest ones and limit 10 shows everything left after skipping the 10
+
+
+results ??
+question five:what does a neighborhood's activity (heliopolis) look like further back in time?
+   checkout_id first_name last_name  book_id checkout_date
+0         9210     Sherif     Saleh      507    2025-09-11
+1         9230      Fares      Adel      501    2025-09-10
+2         9261       Sara    Rashad      509    2025-09-02
+3         9225       Lina     Halim      516    2025-08-06
+4         9250     Sherif     Saleh      507    2025-08-05
+5         9220       Sara    Rashad      507    2025-08-04
+6         9240      Fares      Adel      525    2025-07-25
+7         9282      Ahmed     Fahmy      530    2025-07-22
+8         9256       Lina     Halim      521    2025-07-09
+9         9279       Sara    Rashad      514    2025-07-06
+
+
+
+
+
+
+
+
+
+
+Three stages:
+Stage one
+code:
+#Stage 1  Members and Checkouts
+members_df = run("SELECT * FROM members")
+checkouts_df = run("SELECT * FROM checkouts")
+
+
+print("members df:",members_df.shape)
+print("checkouts df:",checkouts_df.shape)
+member_checkouts = checkouts_df.merge(members_df, on="member_id", how="left")
+
+
+print("member checkouts:",member_checkouts.shape)
+print(member_checkouts.head())
+
+
+print("")
+totals = member_checkouts.groupby("member_id").size().reset_index(name="total_checkouts")
+
+
+# add back members with 0 checkouts so all members are present
+totals = members_df[["member_id"]].merge(totals, on="member_id", how="left")
+totals["total_checkouts"] = totals["total_checkouts"].fillna(0).astype(int)
+
+
+print("total:",totals)
+
+
+
+
+reason ??
+First I got all the members and checkouts. Then I combined using merge and used left to make sure every checkout stays. I used groupby to get the total then i realized that it only counted the people who had checkouts and left out the people with zero checkouts so i merged  total to the member using left and then every member appeared 
+
+
+results ??
+members df: (80, 7)
+checkouts df: (391, 5)
+member checkouts: (391, 11)
+   checkout_id  member_id  book_id checkout_date return_date first_name  \
+0         9263       1047      517    2024-10-21  2024-11-07       Sara   
+1         9340       1072      513    2025-08-24  2025-09-01       Seif   
+2         9231       1053      523    2024-02-04  2024-02-16       Adam   
+3         9129       1032      513    2025-06-21  2025-06-29       Nada   
+4         9370       1079      511    2025-11-11  2025-12-03       Rana   
+
+
+  last_name  grade neighborhood membership_status   join_date  
+0    Rashad    NaN   Heliopolis          Inactive  2024-06-25  
+1      Zaki    9.0      Zamalek            Active  2025-10-21  
+2    Shafik    9.0   Heliopolis            Active  2024-01-03  
+3      Zaki    7.0    Nasr City            Active  2025-10-19  
+4     Osman    8.0       Shubra            Active  2024-10-27  
+
+
+total:     member_id  total_checkouts
+0        1001                1
+1        1002                2
+2        1003                9
+3        1004                0
+4        1005                3
+..        ...              ...
+75       1076                7
+76       1077                6
+77       1078                0
+78       1079               10
+79       1080                2
+
+
+[80 rows x 2 columns]
+
+
+Stage two
+code:
+#Stage 2 — Book Details
+print("details:")
+books_df = run("SELECT * FROM books")
+print("books df:",books_df.shape)
+
+
+
+
+catalog_df = pd.read_json("/content/books.json")
+print("catalog df:",catalog_df.shape)
+
+
+
+
+#i combined the two book sources into one table
+books_full = books_df.merge(catalog_df, on="book_id", how="left")
+print("books full:",books_full.shape)
+print(books_full.head())
+
+
+
+
+member_checkouts_books = member_checkouts.merge(books_full, on="book_id", how="left")
+print("member checkouts books:",member_checkouts_books.shape)
+
+
+reason ??
+Books_df has only title and author so i got catalog from json file that has genre, pages, publication_year, and publisher and then i merged them on the book_id to make sure all the books in one place then i merged the members_checkouts so every checkout now shows details of the book
+
+
+results ??
+details:
+books df: (32, 3)
+catalog df: (32, 5)
+books full: (32, 7)
+   book_id                title         author       genre  pages  \
+0      501      The Silver Kite  Amina Darwish   Adventure    128   
+1      502       Desert Compass  Amina Darwish   Adventure    109   
+2      503    The Lantern Maker   Adel Roushdy  Historical    259   
+3      504  Rooftop Astronomers   Adel Roushdy     Science    319   
+4      505  Letters to the Nile      Aya Hafez  Historical    216   
+
+
+   publication_year            publisher  
+0            2017.0           Nile Press  
+1            2018.0          Delta House  
+2               NaN           Nile Press  
+3            2009.0  Cairo Young Readers  
+4            2024.0          Oasis Books  
+member checkouts books: (391, 17)
+
+
+
+
+Stage three
+code:
+#Stage 3 — The Reading Kickoff Checkouts
+
+
+
+
+#to read the checkouts from the webpage
+kickoff_tables = pd.read_html("/content/checkouts.html")
+kickoff_df = kickoff_tables[0]
+
+
+
+
+#i renamed the columns so that they match the database checkouts
+kickoff_df = kickoff_df.rename(columns={
+  "Member ID": "member_id",
+  "Book ID": "book_id",
+  "Checkout Date": "checkout_date"
+})
+
+
+
+
+#i saw the webpage has no checkout_id so i gave kickoff row a new one
+max_id = member_checkouts_books['checkout_id'].max()
+new_ids = range(max_id + 1, max_id + 1 + len(kickoff_df))
+kickoff_df.insert(0, "checkout_id", new_ids)
+
+
+
+
+#i add member and book info
+kickoff_full = kickoff_df.merge(members_df, on="member_id", how="left")
+kickoff_full = kickoff_full.merge(books_full, on="book_id", how="left")
+
+
+
+
+#i put columns in the same order as the database checkouts
+kickoff_full = kickoff_full.reindex(columns=member_checkouts_books.columns)
+
+
+
+
+#i put the database checkouts and kickoff checkouts into one dataset
+final_df = pd.concat([member_checkouts_books, kickoff_full], ignore_index=True)
+
+
+
+
+print("final shape:",final_df.shape)
+print("missing data in the checkout id:",final_df['checkout_id'].isna().sum())
+print("database:",final_df.head())   #database rows at the top
+print("")
+print("kickoffs:",final_df.tail())   #kickoff rows at the bottom
+
+
+
+
+final_df.to_csv("task1_combined_data.csv", index=False)
+
+
+reason ??
+I read the table off of html and the names were different so i changed them. The kickoffs didn't have a checkout id so I made one up. Every row has a unique id .i merged details from member and books then i put  the database checkouts and kickoff checkouts in one dataset
+
+
+results ??
+final shape: (417, 17)
+missing data in the checkout id: 0
+database:    checkout_id  member_id  book_id checkout_date return_date first_name  \
+0         9263       1047      517    2024-10-21  2024-11-07       Sara   
+1         9340       1072      513    2025-08-24  2025-09-01       Seif   
+2         9231       1053      523    2024-02-04  2024-02-16       Adam   
+3         9129       1032      513    2025-06-21  2025-06-29       Nada   
+4         9370       1079      511    2025-11-11  2025-12-03       Rana   
+
+
+  last_name  grade neighborhood membership_status   join_date  \
+0    Rashad    NaN   Heliopolis          Inactive  2024-06-25   
+1      Zaki    9.0      Zamalek            Active  2025-10-21   
+2    Shafik    9.0   Heliopolis            Active  2024-01-03   
+3      Zaki    7.0    Nasr City            Active  2025-10-19   
+4     Osman    8.0       Shubra            Active  2024-10-27   
+
+
+                     title        author       genre  pages  publication_year  \
+0  Shadows on the Corniche   Hani Nagati     Mystery    338            2015.0   
+1   Circuits for Beginners  Galal Mounir     Science    294            2021.0   
+2    Footsteps in the Dust  Laila Shokry  Historical    276            2018.0   
+3   Circuits for Beginners  Galal Mounir     Science    294            2021.0   
+4     Winter in Alexandria  Farida Anwar  Historical    117            2016.0   
+
+
+     publisher  
+0  Delta House  
+1  Oasis Books  
+2  Oasis Books  
+3  Oasis Books  
+4   Nile Press  
+
+
+kickoffs:      checkout_id  member_id  book_id checkout_date return_date first_name  \
+412         9405       1003      501    2025-07-08         NaN     Bassel   
+413         9406       1017      507    2025-07-11         NaN       Adam   
+414         9407       1061      504    2025-07-06         NaN       Ziad   
+415         9408       1201      523    2025-07-08         NaN        NaN   
+416         9409       1041      512    2025-07-06         NaN       Nada   
+
+
+    last_name  grade neighborhood membership_status   join_date  \
+412    Hegazy    6.0        Maadi            Active  2025-04-23   
+413      Badr    9.0        Maadi            Active  2025-07-12   
+414     Fahmy    9.0      zamalek          Inactive  2023-04-27   
+415       NaN    NaN          NaN               NaN         NaN   
+416    Rashad    7.0    Nasr City            Active  2024-04-02   
+
+
+                      title         author       genre  pages  \
+412         The Silver Kite  Amina Darwish   Adventure    128   
+413   Fossils and Fireflies    Dalia Serry     Science    160   
+414     Rooftop Astronomers   Adel Roushdy     Science    319   
+415   Footsteps in the Dust   Laila Shokry  Historical    276   
+416  The Cartographer's Cat   Farida Anwar   Adventure    238   
+
+
+     publication_year            publisher  
+412            2017.0           Nile Press  
+413            2024.0           Nile Press  
+414            2009.0  Cairo Young Readers  
+415            2018.0          Oasis Books  
+416            2022.0          Delta House  
+
+
+Webpage vs database:
+Webpage vs. Database as data sources
+API: stands for Application Programming Interface. Seen as json file. You send a request, and it sends back exactly what you asked for, organized, tidy, and ready to use right away. (return ready to use data- rarely changes- easier-uninvited)
+web scraping : we go to the page itself, from html. the same page ordinary people see with their own eyes, read the code behind it, and pull out what we need. Exactly like walking into the kitchen ourselves.(return the whole page- changes a lot and make break your code- more work- invited)
+
+
+Why this mattered for my project: the database part was easy because sql already gave me the columns that I asked for with clear names like member_id and checkout_date The kickoff page didn't come like that since it's made for a person to read so I had to find the table in the html and the column names were "Member ID" with a space and a capital letter instead of member_id so I had to rename everything before I combined it with the rest of the data ( one example from my project in task 2 when I found 5 checkouts from the kickoff page where the member_id 1104 1150 1201 didn't match anyone in the members table this never happened before with any of the checkouts that came from the database because a real database only lets you save a member_id that actually exists the kickoff page has no thing like that since its just webpage someone could have typed up by hand so a wrong or made up id could get saved thats a real example of why the comparison mattered it actually caused one of the four problems i had to fix)
